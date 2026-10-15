@@ -1,0 +1,11 @@
+node_modules
+dist
+*.tsbuildinfo
+coverage
+tests/files/output
+.env*
+.DS_Store
+.atl
+.claude
+CLAUDE.md
+.atl
