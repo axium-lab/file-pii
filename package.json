@@ -40,5 +40,8 @@
     "tsup": "^8.5.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "unpdf": "^1.8.1"
   }
 }

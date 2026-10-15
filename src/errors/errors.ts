@@ -2,6 +2,7 @@ export type FileExtractorErrorCategory =
   | 'invalid_input'
   | 'unsupported_format'
   | 'invalid_file'
+  | 'password_required'
   | 'extraction_failed';
 
 export class FileExtractorError extends Error {

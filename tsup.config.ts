@@ -10,6 +10,7 @@ export default defineConfig([
     dts: true,
     splitting: false,
     clean: false,
+    external: ['unpdf'],
   },
   {
     entry: { index: 'src/index.ts' },
@@ -19,5 +20,6 @@ export default defineConfig([
     dts: false,
     splitting: false,
     clean: false,
+    external: ['unpdf'],
   },
 ]);
