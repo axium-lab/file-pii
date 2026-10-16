@@ -83,7 +83,6 @@ export function getPdfMetadata(bytes: Uint8Array): Promise<PdfMetadata> {
         kind: 'pdf',
         fileSize: bytes.byteLength,
         pageCount: pdf.numPages,
-        pages,
         version: asString(info.PDFFormatVersion),
         fingerprint: pdf.fingerprints[0] ?? undefined,
         modifiedFingerprint: pdf.fingerprints[1] ?? undefined,
@@ -169,9 +168,14 @@ function asDate(value: unknown, parser: DateParser): Date | undefined {
 function toCustom(value: unknown): PdfMetadata['custom'] {
   if (typeof value !== 'object' || value === null) return undefined;
 
-  const entries = Object.entries(value).map(([key, raw]) => [key, asName(raw) ?? raw]);
+  const entries = Object.entries(value).map(([key, raw]) => [
+    key,
+    asName(raw) ?? raw,
+  ]);
 
-  return entries.length > 0 ? (Object.fromEntries(entries) as PdfMetadata['custom']) : undefined;
+  return entries.length > 0
+    ? (Object.fromEntries(entries) as PdfMetadata['custom'])
+    : undefined;
 }
 
 // pdfjs PermissionFlag bit values.

@@ -46,7 +46,6 @@ export type PdfMetadata = {
   kind: 'pdf';
   fileSize: number;
   pageCount: number;
-  pages: PdfPageInfo[];
   version?: string;
   fingerprint?: string;
   /** Fingerprint of the last incremental update, when the file has been modified. */

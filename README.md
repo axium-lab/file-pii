@@ -28,7 +28,7 @@ const metadata = await extractor.get_metadata();
 ```
 
 - **Text per page, and as one line.** `pages` keeps page numbers and line breaks for chunking and citing; `raw` is the whole document flattened, ready for an LLM prompt or a search index.
-- **Everything the document declares about itself.** Info dictionary, XMP, flags, permissions, bookmarks, attachments, form fields, layers, page sizes. One open, no rendering.
+- **Everything the document declares about itself.** Info dictionary, XMP, flags, permissions, bookmarks, attachments, form fields, layers. One open, no rendering.
 - **Detection by magic bytes, not by extension.** The caller cannot lie about the file type.
 - **One error type.** Every failure is a `FileExtractorError` with a `category` you can switch on.
 - **Lightweight.** One runtime dependency (`unpdf`, ~2 MB, zero transitive dependencies). No canvas, no WASM to configure.
@@ -117,29 +117,6 @@ await extractor.get_metadata();
   "kind": "pdf",
   "fileSize": 19352,
   "pageCount": 3,
-  "pages": [
-    {
-      "number": 1,
-      "width": 595.28,
-      "height": 841.89,
-      "rotation": 0,
-      "annotations": 6
-    },
-    {
-      "number": 2,
-      "width": 792,
-      "height": 612,
-      "rotation": 90,
-      "annotations": 0
-    },
-    {
-      "number": 3,
-      "width": 419.53,
-      "height": 595.28,
-      "rotation": 0,
-      "annotations": 1
-    }
-  ],
   "version": "1.3",
   "fingerprint": "6bb5201d728bdd7e2c37529a0f6acaca",
   "title": "Full Metadata Sample",
@@ -200,19 +177,9 @@ Optional fields are `undefined` when the file does not carry them. Field by fiel
 | `kind`                | The detected format, `'pdf'`.                                                                   |
 | `fileSize`            | Size of the decoded file, in bytes.                                                             |
 | `pageCount`           | Number of pages.                                                                                |
-| `pages`               | One entry per page, see below.                                                                  |
 | `version`             | PDF spec version declared in the header, e.g. `'1.3'`, `'1.7'`.                                 |
 | `fingerprint`         | Hash pdf.js derives from the file ID. Stable for the same bytes, so a cheap duplicate detector. |
 | `modifiedFingerprint` | Second file ID. Only present when the PDF was saved with incremental updates.                   |
-
-Each entry of `pages`:
-
-| Field             | Meaning                                                                                     |
-| ----------------- | ------------------------------------------------------------------------------------------- |
-| `number`          | 1-based page number.                                                                        |
-| `width`, `height` | Page size in PDF points (1/72 inch), already rotated. A4 is 595 x 842, Letter is 612 x 792. |
-| `rotation`        | 0, 90, 180 or 270 degrees.                                                                  |
-| `annotations`     | How many annotations the page has: links, notes, form widgets, stamps.                      |
 
 **Info dictionary.** The classic metadata written by the tool that produced the PDF. Any of them can be missing.
 
@@ -334,7 +301,7 @@ npm run typecheck
 npm run build      # dist/esm + dist/cjs via tsup
 ```
 
-`tests/manual.ts` is a playground, not a test suite: it loads a fixture from `tests/fixtures/`, calls the API and prints the result. `tests/fixtures/full.pdf` exercises every metadata field.
+`tests/manual.ts` is a playground, not a test suite: it loads a fixture from `tests/fixtures/`, calls the API and prints the result. `tests/fixtures/full.pdf` exercises every metadata field. `tests/errors.ts` does the same for each error category and runs at the end of `manual.ts`.
 
 ## License
 
