@@ -9,11 +9,8 @@ import type {
   OutlineItem,
   PdfFormField,
   PdfMetadata,
-  PdfPageInfo,
   PdfPermission,
 } from '../types';
-
-type PdfDocument = Awaited<ReturnType<typeof getDocumentProxy>>;
 
 /** The PDF spec allows the header anywhere within the first 1024 bytes. */
 export function isPdf(bytes: Uint8Array): boolean {
@@ -56,7 +53,6 @@ export function getPdfMetadata(bytes: Uint8Array): Promise<PdfMetadata> {
         viewerPreferences,
         openAction,
         optionalContent,
-        pages,
       ] = await Promise.all([
         getResolvedPDFJS(),
         pdf.getMetadata(),
@@ -73,7 +69,6 @@ export function getPdfMetadata(bytes: Uint8Array): Promise<PdfMetadata> {
         pdf.getViewerPreferences(),
         pdf.getOpenAction(),
         pdf.getOptionalContentConfig(),
-        readPages(pdf),
       ]);
 
       // pdfjs types the Info dictionary as a bare Object.
@@ -123,25 +118,6 @@ export function getPdfMetadata(bytes: Uint8Array): Promise<PdfMetadata> {
       await pdf.loadingTask.destroy();
     }
   });
-}
-
-async function readPages(pdf: PdfDocument): Promise<PdfPageInfo[]> {
-  const numbers = Array.from({ length: pdf.numPages }, (_, i) => i + 1);
-
-  return Promise.all(
-    numbers.map(async (number) => {
-      const page = await pdf.getPage(number);
-      const { width, height } = page.getViewport({ scale: 1 });
-      const annotations = await page.getAnnotations();
-      return {
-        number,
-        width,
-        height,
-        rotation: page.rotate,
-        annotations: annotations.length,
-      };
-    }),
-  );
 }
 
 function asString(value: unknown): string | undefined {

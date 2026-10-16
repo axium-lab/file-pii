@@ -27,15 +27,6 @@ export type PdfPermission =
   | 'copy_for_accessibility'
   | 'assemble';
 
-export type PdfPageInfo = {
-  number: number;
-  /** Width in PDF points (1/72 inch), after rotation. */
-  width: number;
-  height: number;
-  rotation: number;
-  annotations: number;
-};
-
 export type PdfFormField = {
   name: string;
   type: string;

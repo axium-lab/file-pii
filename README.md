@@ -281,7 +281,7 @@ try {
 | -------------------------------------------- | ---------------------------------- |
 | `FileExtractorError`, `isFileExtractorError` | The error class and its type guard |
 
-Types: `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPageInfo`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
+Types: `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
 
 ## Limitations
 
