@@ -30,7 +30,10 @@ const metadata = await extractor.get_metadata();
 // { title: 'Full Metadata Sample', pageCount: 3, encrypted: true, permissions: ['print', 'copy', 'fill_forms'], … }
 
 const scan = await extractor.scan_pii({ countries: ['ES', 'GLOBAL'], policy: { kinds: { PAYMENT_CARD: 'block' } } });
-// { blocked: true, blocked_by: [{ entity: 'CREDIT_CARD', … }], entities: [{ entity: 'ES_NIF', … }, …], metadata: { kind: 'pdf', pages: [...] } }
+// { blocked: true, blocked_by: [{ entity: 'CREDIT_CARD', … }], entities: [{ entity: 'ES_NIF', … }, …], metadata: { kind: 'pdf' } }
+
+await extractor.scan_pii(piiOptions, { pages: true });
+// same, plus metadata.pages: [{ number: 1, entities: [...] }, …], one entry per page
 ```
 
 - **Text as one line, and per page.** `raw` is the default: the document flattened, ready for an LLM prompt or a search index. `pages` is opt-in and keeps page numbers and line breaks for chunking and citing; ask for all of them or only some.
@@ -289,7 +292,7 @@ await extractor.scan_pii(
       kinds: { PAYMENT_CARD: 'block' },
     },
   },
-  { pages: [1, 3] },             // optional: only these pages
+  { pages: [1, 3] },             // optional: only these pages, broken down per page
 );
 ```
 
@@ -317,11 +320,11 @@ await extractor.scan_pii(
 
 The first argument is a euro-pii options object, passed through as it is: `countries`, `kinds`, `entities` and `except` choose what to look for, exactly as [euro-pii documents them](https://www.npmjs.com/package/@axium-lab/euro-pii#choosing-what-to-look-for). The policy is the same too, with one difference: a file is never rewritten, so there is no `mask`. Each detection is either kept (reported, the file passes) or blocks (the file is refused). The most specific key wins: `entities`, then `kinds`, then `default`, which is `'keep'` when left out. Without a policy, everything is reported and nothing blocks. A `'mask'` that arrives from plain JSON behaves as `'keep'`.
 
-The second argument is the scope:
+The second argument is the scope, with the same vocabulary as `extract_text`:
 
-| Option  | Default   | Meaning                                                                 |
-| ------- | --------- | ----------------------------------------------------------------------- |
-| `pages` | all pages | `number[]` of 1-based page numbers to scan. The others are not even read. |
+| Option  | Default | Meaning                                                                                                                                                                            |
+| ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pages` | `false` | `false`: scan the whole document, no per-page breakdown. `true`: scan the whole document and break it down per page. `number[]`: scan only those 1-based pages and break them down. |
 
 The result is what euro-pii's `anonymize()` returns for `extract_text({ pages }).raw`, without the anonymized text, plus `metadata`:
 
@@ -331,7 +334,8 @@ The result is what euro-pii's `anonymize()` returns for `extract_text({ pages })
 | `blocked_by`                | The detections that blocked. Present only when `blocked` is `true`, so TypeScript narrows on it.                         |
 | `entities`                  | Every detection, in document order. `start` and `end` are offsets into `raw` of the same pages, `end` exclusive.         |
 | `metadata.kind`             | The detected format, `'pdf'`.                                                                                            |
-| `metadata.pages[].number`   | 1-based page number. Only the scanned pages, in ascending order.                                                         |
+| `metadata.pages`            | Present only when `pages` was requested. One entry per scanned page, in ascending order, so the default JSON stays small. |
+| `metadata.pages[].number`   | 1-based page number.                                                                                                     |
 | `metadata.pages[].entities` | The same detections, with offsets into that page's `text` as `extract_text({ pages: true })` returns it.                 |
 
 Each detection is a euro-pii `Detection`, untouched: `entity`, `kind`, `dataClass`, `identifiability`, `country`, `start`, `end`, `score`, `value`, `pattern`, `confirmedBy`. See [its README](https://www.npmjs.com/package/@axium-lab/euro-pii#detecting-scan) for what each field means.
@@ -339,14 +343,14 @@ Each detection is a euro-pii `Detection`, untouched: `entity`, `kind`, `dataClas
 Pages are read and scanned one at a time, so a document with hundreds of pages costs one page of memory, not the whole text. Each page is scanned as a single line, exactly as `raw` is built, so the result is the same whether you look at `entities` or at `metadata.pages`. A value split across two pages is not detected.
 
 ```ts
-const scan = await extractor.scan_pii({ countries: ['ES', 'GLOBAL'] });
+const scan = await extractor.scan_pii({ countries: ['ES', 'GLOBAL'] }, { pages: true });
 
 if (scan.entities.length === 0) {
   // nothing personal in the file
 }
 
 if (scan.blocked) {
-  const pages = scan.metadata.pages.filter((p) => p.entities.length > 0).map((p) => p.number);
+  const pages = (scan.metadata.pages ?? []).filter((p) => p.entities.length > 0).map((p) => p.number);
   throw new Error(`Refused: ${scan.blocked_by.map((d) => d.entity).join(', ')} on pages ${pages.join(', ')}`);
 }
 ```
@@ -409,13 +413,13 @@ type ScanPiiOptions = Selection & {       // Selection is euro-pii's: countries,
   };
 };
 
-type ScanPiiScope = { pages?: number[] };
+type ScanPiiScope = { pages?: boolean | number[] };
 
 type PiiScan = (
   | { blocked: false; entities: Detection[] }
   | { blocked: true; blocked_by: Detection[]; entities: Detection[] }
 ) & {
-  metadata: { kind: FileKind; pages: { number: number; entities: Detection[] }[] };
+  metadata: { kind: FileKind; pages?: { number: number; entities: Detection[] }[] };
 };
 ```
 

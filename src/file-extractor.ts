@@ -46,8 +46,8 @@ export class FileExtractor {
   scan_pii(options: ScanPiiOptions = {}, scope: ScanPiiScope = {}): Promise<PiiScan> {
     switch (this.kind) {
       case 'pdf':
-        return scanPii(this.kind, options, (visit) =>
-          readPdfPages(this.#bytes, scope.pages, visit),
+        return scanPii(this.kind, options, Boolean(scope.pages), (visit) =>
+          readPdfPages(this.#bytes, Array.isArray(scope.pages) ? scope.pages : undefined, visit),
         );
     }
   }

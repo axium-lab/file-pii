@@ -21,6 +21,7 @@ async function assertOffsets(scan: PiiScan, pages?: number[]) {
   for (const d of scan.entities) {
     assert.equal(raw.slice(d.start, d.end), d.value, `raw offset of ${d.entity}`);
   }
+  assert.ok(scan.metadata.pages, 'breakdown was requested');
   for (const page of scan.metadata.pages) {
     const extracted = text.pages?.find((p) => p.number === page.number);
     assert.ok(extracted, `page ${page.number} was extracted`);
@@ -33,10 +34,25 @@ async function assertOffsets(scan: PiiScan, pages?: number[]) {
   assert.deepEqual(scan.entities.map((d) => d.value), flat);
 }
 
-// Whole document: four entities, blocked by the card.
+// Whole document, no breakdown: four entities, blocked by the card, no metadata.pages.
 {
   const scan = await extractor.scan_pii(piiJson);
   assert.equal(scan.metadata.kind, 'pdf');
+  assert.equal('pages' in scan.metadata, false, 'no breakdown unless asked');
+  assert.deepEqual(
+    scan.entities.map((d) => d.entity),
+    ['ES_NIF', 'EMAIL_ADDRESS', 'CREDIT_CARD', 'IBAN_CODE'],
+  );
+  assert.ok(scan.blocked);
+  assert.deepEqual(scan.blocked_by.map((d) => d.entity), ['CREDIT_CARD']);
+  const raw = (await extractor.extract_text()).raw ?? '';
+  for (const d of scan.entities) assert.equal(raw.slice(d.start, d.end), d.value);
+}
+
+// Whole document with breakdown: same detections, plus one entry per page.
+{
+  const scan = await extractor.scan_pii(piiJson, { pages: true });
+  assert.ok(scan.metadata.pages);
   assert.deepEqual(scan.metadata.pages.map((p) => p.number), [1, 2, 3]);
   assert.deepEqual(
     scan.entities.map((d) => d.entity),
@@ -49,9 +65,16 @@ async function assertOffsets(scan: PiiScan, pages?: number[]) {
   await assertOffsets(scan);
 }
 
+// pages: false is the same as leaving it out.
+{
+  const scan = await extractor.scan_pii(piiJson, { pages: false });
+  assert.equal('pages' in scan.metadata, false);
+  assert.equal(scan.entities.length, 4);
+}
+
 // No policy: everything is found, nothing blocks, blocked_by is absent.
 {
-  const scan = await extractor.scan_pii();
+  const scan = await extractor.scan_pii(undefined, { pages: true });
   assert.equal(scan.blocked, false);
   assert.equal('blocked_by' in scan, false);
   assert.ok(scan.entities.length >= 4);
@@ -62,7 +85,7 @@ async function assertOffsets(scan: PiiScan, pages?: number[]) {
 {
   const scan = await extractor.scan_pii(piiJson, { pages: [1] });
   assert.equal(scan.blocked, false);
-  assert.deepEqual(scan.metadata.pages.map((p) => p.number), [1]);
+  assert.deepEqual(scan.metadata.pages?.map((p) => p.number), [1]);
   assert.deepEqual(scan.entities.map((d) => d.entity), ['ES_NIF', 'EMAIL_ADDRESS']);
   await assertOffsets(scan, [1]);
 }
@@ -70,7 +93,7 @@ async function assertOffsets(scan: PiiScan, pages?: number[]) {
 // Scope: pages 1 and 3 skipping 2; the raw offsets follow extract_text({ pages: [1, 3] }).
 {
   const scan = await extractor.scan_pii(piiJson, { pages: [3, 1] });
-  assert.deepEqual(scan.metadata.pages.map((p) => p.number), [1, 3]);
+  assert.deepEqual(scan.metadata.pages?.map((p) => p.number), [1, 3]);
   assert.equal(scan.blocked, true);
   await assertOffsets(scan, [1, 3]);
 }

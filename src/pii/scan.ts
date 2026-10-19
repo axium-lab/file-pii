@@ -28,12 +28,13 @@ export type PageReader = (
 export async function scanPii(
   kind: FileKind,
   options: ScanPiiOptions,
+  breakdown: boolean,
   readPages: PageReader,
 ): Promise<PiiScan> {
   // Fail fast on bad options, before opening a document that may be huge.
   withPiiErrors(() => ner.anonymize('', options));
 
-  const pages: PiiPage[] = [];
+  const pages: PiiPage[] | undefined = breakdown ? [] : undefined;
   const entities: Detection[] = [];
   const blockedBy: Detection[] = [];
   let offset = 0;
@@ -43,7 +44,7 @@ export async function scanPii(
       ner.anonymize(text.replace(/\n/g, ' '), options),
     );
 
-    pages.push({ number, entities: result.entities });
+    pages?.push({ number, entities: result.entities });
     entities.push(...result.entities.map((d) => shift(d, offset)));
     if (result.blocked) {
       blockedBy.push(...result.blocked_by.map((d) => shift(d, offset)));
@@ -52,7 +53,7 @@ export async function scanPii(
     offset += text.length + 1; // the space `raw` puts between pages
   });
 
-  const metadata = { kind, pages };
+  const metadata = pages ? { kind, pages } : { kind };
 
   return blockedBy.length > 0
     ? { blocked: true, blocked_by: blockedBy, entities, metadata }

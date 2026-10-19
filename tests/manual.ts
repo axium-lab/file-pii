@@ -46,7 +46,7 @@ console.log(
         except: ['DATE_TIME'],
         policy: { kinds: { PAYMENT_CARD: 'block' } },
       },
-      { pages: [1, 3] },
+      { pages: [1, 3] }, // or `true` for every page; leave it out for no per-page breakdown
     ),
     null,
     2,

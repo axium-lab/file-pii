@@ -135,8 +135,12 @@ export type ScanPiiOptions = Selection & {
 };
 
 export type ScanPiiScope = {
-  /** Which pages to scan, 1-based. All of them when left out. */
-  pages?: number[];
+  /**
+   * Same vocabulary as `extract_text`: false = scan everything, no per-page
+   * breakdown (default); true = scan everything and break it down per page;
+   * number[] = scan only those pages, 1-based, and break them down.
+   */
+  pages?: boolean | number[];
 };
 
 export type PiiPage = {
@@ -157,7 +161,7 @@ export type PiiScan = (
 ) & {
   metadata: {
     kind: FileKind;
-    /** Only the scanned pages, in ascending order. */
-    pages: PiiPage[];
+    /** The scanned pages, in ascending order. Present only when `pages` was requested. */
+    pages?: PiiPage[];
   };
 };
