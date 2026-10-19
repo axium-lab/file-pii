@@ -9,3 +9,4 @@ tests/files/output
 .claude
 CLAUDE.md
 .atl
+bun.lock
