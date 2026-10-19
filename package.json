@@ -43,5 +43,8 @@
   },
   "dependencies": {
     "unpdf": "^1.8.1"
+  },
+  "peerDependencies": {
+    "@axium-lab/euro-pii": "*"
   }
 }
