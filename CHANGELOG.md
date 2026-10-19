@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/release.sh`: tags `vX.Y.Z`, pushes and publishes, with preflight
+  checks against the tree, the tag and the registry (`--dry-run`, `--yes`).
+- `scripts/check-dist.mjs`: runs after `tsup` and fails the build if any
+  `main`, `module`, `types` or `exports` path was not emitted.
+- `npm test` runs the assertion scripts (`tests/inputs.ts`, `tests/pii.ts`);
+  `npm run clean` removes `dist`.
+
 ## [0.2.0] - 2026-10-19
 
 The package is now `@axium-lab/file-pii`. The API is unchanged.

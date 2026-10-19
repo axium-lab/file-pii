@@ -55,6 +55,7 @@ await extractor.scan_pii(piiOptions, { pages: true });
 - [API reference](#api-reference)
 - [Limitations](#limitations)
 - [Development](#development)
+- [Releasing](#releasing)
 
 ## Installation
 
@@ -439,12 +440,26 @@ What file-pii does **not** do matters as much as what it does:
 ```bash
 npm run dev        # runs tests/manual.ts in watch mode
 npm run typecheck
-npm run build      # dist/esm + dist/cjs via tsup
+npm test           # runs tests/inputs.ts and tests/pii.ts
+npm run build      # dist/esm + dist/cjs via tsup, then scripts/check-dist.mjs
 ```
 
 `tests/manual.ts` is a playground, not a test suite: it loads a fixture from `tests/fixtures/`, calls the API and prints the result. `tests/fixtures/full.pdf` exercises every metadata field. `tests/errors.ts` does the same for each error category and runs at the end of `manual.ts`.
 
-`tests/inputs.ts` and `tests/pii.ts` are assertion scripts: run them with `bun tests/inputs.ts` or `npx tsx tests/pii.ts`. `tests/fixtures/pii.pdf` has a NIF and an email on page 1, nothing on page 2, and a card and an IBAN on page 3.
+`tests/inputs.ts` and `tests/pii.ts` are assertion scripts: `npm test` runs both, or run one with `bun tests/inputs.ts` or `npx tsx tests/pii.ts`. `tests/fixtures/pii.pdf` has a NIF and an email on page 1, nothing on page 2, and a card and an IBAN on page 3.
+
+## Releasing
+
+1. Bump `version` in `package.json`.
+2. Move the `[Unreleased]` entries in `CHANGELOG.md` to a new `## [X.Y.Z] - YYYY-MM-DD` section.
+3. Commit on `main` and leave the working tree clean.
+4. Check you are logged in to the registry in `publishConfig` (`npm whoami --registry=<url>`).
+5. Run `./scripts/release.sh` (`--dry-run` first to see what it would do).
+
+The script checks the tree, tag and registry, runs typecheck, tests and a clean build, then
+tags `vX.Y.Z`, pushes, and publishes last: a tag can be deleted, a published version cannot.
+`scripts/check-dist.mjs` runs as part of `npm run build` and fails it if any `main`, `module`,
+`types` or `exports` path points at a file tsup did not emit.
 
 ## License
 

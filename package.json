@@ -24,9 +24,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && node scripts/check-dist.mjs",
+    "clean": "rm -rf dist",
     "prepare": "npm run build",
     "typecheck": "tsc --noEmit",
+    "test": "tsx tests/inputs.ts && tsx tests/pii.ts",
     "dev": "tsx watch tests/manual.ts"
   },
   "repository": {
