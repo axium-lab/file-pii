@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-19
+
 ### Changed
 
 - Licensed under MIT (`LICENSE` added, `license` field in `package.json`
@@ -114,6 +116,7 @@ Initial release. PDF is the only supported format; more formats will follow.
 - `PdfPageInfo` type and the `pages` field of `PdfMetadata`, superseded by the
   `pages` option of `extract_text()`.
 
-[Unreleased]: https://dev.azure.com/axium-lab/pocs/_git/file-pii
-[0.2.0]: https://dev.azure.com/axium-lab/pocs/_git/file-pii
-[0.1.0]: https://dev.azure.com/axium-lab/pocs/_git/file-pii
+[Unreleased]: https://github.com/axium-lab/file-pii/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/axium-lab/file-pii/compare/v0.2.0...v0.3.0
+[0.2.0]: https://github.com/axium-lab/file-pii/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/axium-lab/file-pii/releases/tag/v0.1.0
