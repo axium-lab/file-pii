@@ -1,7 +1,7 @@
 {
-  "name": "@axium-lab/file-extractor",
-  "version": "0.1.0",
-  "description": "Minimal text extraction from files. PDF first, more formats later.",
+  "name": "@axium-lab/file-pii",
+  "version": "0.2.0",
+  "description": "Detect personal data (PII) in files with euro-pii and apply a keep/block policy. Also extracts text and metadata. PDF today, no native dependencies.",
   "license": "UNLICENSED",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
@@ -16,7 +16,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=22"
@@ -29,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@ssh.dev.azure.com:v3/axium-lab/pocs/file-extractor"
+    "url": "git@ssh.dev.azure.com:v3/axium-lab/pocs/file-pii"
   },
   "publishConfig": {
     "@axium-lab:registry": "https://npm.pkg.github.com",

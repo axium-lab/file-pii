@@ -1,6 +1,6 @@
-# @axium-lab/file-extractor
+# @axium-lab/file-pii
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](package.json)
 [![License: UNLICENSED](https://img.shields.io/badge/License-UNLICENSED-lightgrey.svg)](package.json)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](package.json)
 [![Formats](https://img.shields.io/badge/formats-PDF-orange.svg)](#limitations)
@@ -10,11 +10,11 @@
 Extract text and metadata from files, and check them for personal data, **without native dependencies**: one class, three methods, one error type. It is built on [unpdf](https://github.com/unjs/unpdf) (the serverless build of pdf.js) and runs anywhere Node 22 does.
 
 ```bash
-npm install @axium-lab/file-extractor
+npm install @axium-lab/file-pii
 ```
 
 ```ts
-import { FileExtractor } from '@axium-lab/file-extractor';
+import { FileExtractor } from '@axium-lab/file-pii';
 
 const extractor = new FileExtractor(input); // Buffer, base64 or data URI; detects the format from the bytes
 
@@ -59,11 +59,11 @@ await extractor.scan_pii(piiOptions, { pages: true });
 ## Installation
 
 ```bash
-npm install @axium-lab/file-extractor
+npm install @axium-lab/file-pii
 # or
-pnpm add @axium-lab/file-extractor
+pnpm add @axium-lab/file-pii
 # or
-bun add @axium-lab/file-extractor
+bun add @axium-lab/file-pii
 ```
 
 Requires Node.js 22 or later. There is nothing to configure.
@@ -93,7 +93,7 @@ All three are asynchronous and can be called in any order, as many times as you 
 ### Extracting text: `extract_text()`
 
 ```ts
-import { FileExtractor } from '@axium-lab/file-extractor';
+import { FileExtractor } from '@axium-lab/file-pii';
 
 const extractor = new FileExtractor(base64);
 
@@ -370,7 +370,7 @@ Every error thrown by the library is a `FileExtractorError` with a `category`:
 `unsupported_format` is thrown by the constructor, `invalid_input` by the constructor and by the methods, the rest by the methods. The original error is kept in `cause`; for `scan_pii` option errors that is the `EuroPiiError`.
 
 ```ts
-import { FileExtractor, isFileExtractorError } from '@axium-lab/file-extractor';
+import { FileExtractor, isFileExtractorError } from '@axium-lab/file-pii';
 
 try {
   const extractor = new FileExtractor(base64);
@@ -425,7 +425,7 @@ type PiiScan = (
 
 ## Limitations
 
-What file-extractor does **not** do matters as much as what it does:
+What file-pii does **not** do matters as much as what it does:
 
 - **PDF only, for now.** Any other format throws `unsupported_format`. New formats plug into the `kind` detection and the `switch` in `FileExtractor`.
 - **No OCR.** A scanned PDF has no text layer, so `extract_text()` returns empty text and `scan_pii()` finds nothing.

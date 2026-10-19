@@ -10,3 +10,4 @@ tests/files/output
 CLAUDE.md
 .atl
 bun.lock
+package-lock.json
