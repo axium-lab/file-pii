@@ -2,6 +2,16 @@ export const FILE_KINDS = ['pdf'] as const;
 
 export type FileKind = (typeof FILE_KINDS)[number];
 
+/**
+ * Accepted file inputs:
+ * - raw bytes: `Buffer`, `Uint8Array` or `ArrayBuffer`
+ * - a base64 string (standard or base64url, whitespace allowed)
+ * - a data URI: `data:application/pdf;base64,....`
+ *
+ * The format is always detected from the bytes, never from the data URI's MIME type.
+ */
+export type FileInput = string | Uint8Array | ArrayBuffer;
+
 /** MIME types of the supported formats, so callers can skip other files without decoding them. */
 export const SUPPORTED_MIME_TYPES = ['application/pdf'] as const;
 

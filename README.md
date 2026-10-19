@@ -15,7 +15,7 @@ npm install @axium-lab/file-extractor
 ```ts
 import { FileExtractor } from '@axium-lab/file-extractor';
 
-const extractor = new FileExtractor(base64); // detects the format from the bytes
+const extractor = new FileExtractor(input); // Buffer, base64 or data URI; detects the format from the bytes
 
 extractor.kind; // 'pdf'
 
@@ -61,7 +61,15 @@ Requires Node.js 22 or later. There is nothing to configure.
 
 ## Usage
 
-`FileExtractor` takes the file as a **base64 string**. The constructor decodes it, detects the format from its first bytes and fails fast if the input is not base64 or the format is not supported. Nothing is parsed until you call a method.
+`FileExtractor` takes the file in any of these shapes (`FileInput`):
+
+| Input                                    | Notes                                                              |
+| ---------------------------------------- | ------------------------------------------------------------------ |
+| `Buffer`, `Uint8Array` or `ArrayBuffer`  | Used as is, no copy.                                               |
+| base64 string                            | Standard or base64url alphabet, padding optional, whitespace ignored. |
+| data URI (`data:application/pdf;base64,…`) | Must be base64 encoded. The MIME type is ignored: the bytes decide. |
+
+The constructor decodes the input, detects the format from its first bytes and fails fast if the input is empty or malformed, or the format is not supported. Nothing is parsed until you call a method.
 
 | Method           | Does                                                                 |
 | ---------------- | -------------------------------------------------------------------- |
@@ -266,7 +274,7 @@ Every error thrown by the library is a `FileExtractorError` with a `category`:
 
 | Category             | Thrown when                                                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `invalid_input`      | The input is not valid base64, or the `extract_text` options select nothing or a page that does not exist. |
+| `invalid_input`      | The input is empty, not a `FileInput`, invalid base64 or a non-base64 data URI, or the `extract_text` options select nothing or a page that does not exist. |
 | `unsupported_format` | The bytes are not a supported file type.                                                                   |
 | `invalid_file`       | The file is corrupt or malformed.                                                                          |
 | `password_required`  | The PDF needs a user password to open.                                                                     |
@@ -292,7 +300,7 @@ try {
 
 | Member                      | Returns                                        |
 | --------------------------- | ---------------------------------------------- |
-| `new FileExtractor(base64)` | Throws `invalid_input` or `unsupported_format` |
+| `new FileExtractor(input)`  | `input: FileInput`. Throws `invalid_input` or `unsupported_format` |
 | `kind`                      | `FileKind`: `'pdf'`                            |
 | `extract_text(options?)`    | `Promise<ExtractedText>`                       |
 | `get_metadata()`            | `Promise<FileMetadata>`                        |
@@ -304,7 +312,7 @@ try {
 | `FileExtractorError`, `isFileExtractorError` | The error class and its type guard                                            |
 | `FILE_KINDS`, `SUPPORTED_MIME_TYPES`         | `['pdf']` and `['application/pdf']`, to skip other files before decoding them |
 
-Types: `ExtractTextOptions`, `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
+Types: `FileInput`, `ExtractTextOptions`, `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
 
 ## Limitations
 

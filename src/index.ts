@@ -6,6 +6,7 @@ export type {
   ExtractedPage,
   ExtractedText,
   ExtractTextOptions,
+  FileInput,
   FileKind,
   FileMetadata,
   OutlineItem,
