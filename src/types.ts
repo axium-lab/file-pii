@@ -1,3 +1,10 @@
+import type {
+  Detection,
+  EntityName,
+  Kind,
+  Selection,
+} from '@axium-lab/euro-pii';
+
 export const FILE_KINDS = ['pdf'] as const;
 
 export type FileKind = (typeof FILE_KINDS)[number];
@@ -104,3 +111,53 @@ export type PdfMetadata = {
 };
 
 export type FileMetadata = PdfMetadata;
+
+/**
+ * What `scan_pii()` does with a detection. Files are never rewritten, so there
+ * is no `mask`: the text either passes as it is or the whole file is refused.
+ */
+export type FileAction = 'keep' | 'block';
+
+/**
+ * Same resolution as euro-pii: the most specific key wins (`entities`, then
+ * `kinds`, then `default`). `default` is `'keep'` when left out, so without a
+ * policy nothing blocks and everything found is reported.
+ */
+export type FilePolicy = {
+  default?: FileAction;
+  kinds?: Partial<Record<Kind, FileAction>>;
+  entities?: Partial<Record<EntityName, FileAction>>;
+};
+
+/** euro-pii's selection (countries, kinds, entities, except) plus a keep/block policy. */
+export type ScanPiiOptions = Selection & {
+  policy?: FilePolicy;
+};
+
+export type ScanPiiScope = {
+  /** Which pages to scan, 1-based. All of them when left out. */
+  pages?: number[];
+};
+
+export type PiiPage = {
+  number: number;
+  /** Offsets relative to this page's text, as `extract_text({ pages })` returns it. */
+  entities: Detection[];
+};
+
+/**
+ * What euro-pii would return for `extract_text({ pages }).raw`, minus the
+ * anonymized text, plus `metadata` with the same detections seen per page.
+ * Top-level offsets refer to that single-line document; `metadata.pages[]`
+ * offsets refer to each page.
+ */
+export type PiiScan = (
+  | { blocked: false; entities: Detection[] }
+  | { blocked: true; blocked_by: Detection[]; entities: Detection[] }
+) & {
+  metadata: {
+    kind: FileKind;
+    /** Only the scanned pages, in ascending order. */
+    pages: PiiPage[];
+  };
+};

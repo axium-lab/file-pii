@@ -4,9 +4,10 @@
 [![License: UNLICENSED](https://img.shields.io/badge/License-UNLICENSED-lightgrey.svg)](package.json)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](package.json)
 [![Formats](https://img.shields.io/badge/formats-PDF-orange.svg)](#limitations)
+[![PII](https://img.shields.io/badge/PII-euro--pii-purple.svg)](#detecting-personal-data-scan_pii)
 [![Types](https://img.shields.io/badge/types-included-3178c6.svg)](src/types.ts)
 
-Extract text and metadata from files, **without native dependencies**: one class, two methods, one error type. It is built on [unpdf](https://github.com/unjs/unpdf) (the serverless build of pdf.js) and runs anywhere Node 22 does.
+Extract text and metadata from files, and check them for personal data, **without native dependencies**: one class, three methods, one error type. It is built on [unpdf](https://github.com/unjs/unpdf) (the serverless build of pdf.js) and runs anywhere Node 22 does.
 
 ```bash
 npm install @axium-lab/file-extractor
@@ -27,13 +28,17 @@ await extractor.extract_text({ pages: [2, 4] });
 
 const metadata = await extractor.get_metadata();
 // { title: 'Full Metadata Sample', pageCount: 3, encrypted: true, permissions: ['print', 'copy', 'fill_forms'], … }
+
+const scan = await extractor.scan_pii({ countries: ['ES', 'GLOBAL'], policy: { kinds: { PAYMENT_CARD: 'block' } } });
+// { blocked: true, blocked_by: [{ entity: 'CREDIT_CARD', … }], entities: [{ entity: 'ES_NIF', … }, …], metadata: { kind: 'pdf', pages: [...] } }
 ```
 
 - **Text as one line, and per page.** `raw` is the default: the document flattened, ready for an LLM prompt or a search index. `pages` is opt-in and keeps page numbers and line breaks for chunking and citing; ask for all of them or only some.
 - **Everything the document declares about itself.** Info dictionary, XMP, flags, permissions, bookmarks, attachments, form fields, layers. One open, no rendering.
+- **Personal data, page by page.** `scan_pii()` runs [euro-pii](https://www.npmjs.com/package/@axium-lab/euro-pii) over the document and tells you what it found, on which page, and whether your policy refuses the file. The file is never rewritten.
 - **Detection by magic bytes, not by extension.** The caller cannot lie about the file type.
 - **One error type.** Every failure is a `FileExtractorError` with a `category` you can switch on.
-- **Lightweight.** One runtime dependency (`unpdf`, ~2 MB, zero transitive dependencies). No canvas, no WASM to configure.
+- **Lightweight.** One runtime dependency (`unpdf`, ~2 MB, zero transitive dependencies) and one peer (`@axium-lab/euro-pii`, zero dependencies). No canvas, no WASM to configure.
 - ESM and CommonJS, with TypeScript declarations included.
 
 ## Contents
@@ -42,6 +47,7 @@ const metadata = await extractor.get_metadata();
 - [Usage](#usage)
   - [Extracting text: `extract_text()`](#extracting-text-extract_text)
   - [Reading metadata: `get_metadata()`](#reading-metadata-get_metadata)
+  - [Detecting personal data: `scan_pii()`](#detecting-personal-data-scan_pii)
   - [Errors](#errors)
 - [API reference](#api-reference)
 - [Limitations](#limitations)
@@ -59,6 +65,8 @@ bun add @axium-lab/file-extractor
 
 Requires Node.js 22 or later. There is nothing to configure.
 
+[`@axium-lab/euro-pii`](https://www.npmjs.com/package/@axium-lab/euro-pii) is a **peer dependency** with no version constraint: npm 7+, pnpm and Bun install it for you, and any published version works.
+
 ## Usage
 
 `FileExtractor` takes the file in any of these shapes (`FileInput`):
@@ -75,8 +83,9 @@ The constructor decodes the input, detects the format from its first bytes and f
 | ---------------- | -------------------------------------------------------------------- |
 | `extract_text()` | Returns the document text; optionally per page or only some pages.   |
 | `get_metadata()` | Returns everything the document declares about itself. No rendering. |
+| `scan_pii()`     | Finds personal data with euro-pii and applies a keep/block policy.   |
 
-Both are asynchronous and can be called in any order, as many times as you want.
+All three are asynchronous and can be called in any order, as many times as you want.
 
 ### Extracting text: `extract_text()`
 
@@ -268,19 +277,93 @@ Optional fields are `undefined` when the file does not carry them. Field by fiel
 | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `xmp` | The XML metadata packet, keyed by `prefix:name`, e.g. `dc:title`, `xmp:createdate`, `pdf:producer`. Modern tools write both Info and XMP; they usually agree, but XMP wins when they differ. |
 
+### Detecting personal data: `scan_pii()`
+
+```ts
+await extractor.scan_pii(
+  {
+    countries: ['ES', 'GLOBAL'], // Spanish identifiers plus IBAN, cards, email…
+    except: ['DATE_TIME'],       // but not dates
+    policy: {
+      default: 'keep',           // 'keep' | 'block'
+      kinds: { PAYMENT_CARD: 'block' },
+    },
+  },
+  { pages: [1, 3] },             // optional: only these pages
+);
+```
+
+```json
+{
+  "blocked": true,
+  "blocked_by": [
+    { "entity": "CREDIT_CARD", "kind": "PAYMENT_CARD", "country": "GLOBAL", "start": 74, "end": 93, "value": "4111 1111 1111 1111", "score": 1, "confirmedBy": "checksum", "…": "…" }
+  ],
+  "entities": [
+    { "entity": "ES_NIF", "kind": "TAX_ID", "country": "ES", "start": 24, "end": 33, "value": "12345678Z", "…": "…" },
+    { "entity": "EMAIL_ADDRESS", "kind": "EMAIL", "country": "GLOBAL", "start": 41, "end": 56, "value": "ana@example.com", "…": "…" },
+    { "entity": "CREDIT_CARD", "kind": "PAYMENT_CARD", "country": "GLOBAL", "start": 74, "end": 93, "value": "4111 1111 1111 1111", "…": "…" },
+    { "entity": "IBAN_CODE", "kind": "BANK_ACCOUNT", "country": "GLOBAL", "start": 99, "end": 128, "value": "ES91 2100 0418 4502 0005 1332", "…": "…" }
+  ],
+  "metadata": {
+    "kind": "pdf",
+    "pages": [
+      { "number": 1, "entities": [{ "entity": "ES_NIF", "start": 24, "end": 33, "…": "…" }, { "entity": "EMAIL_ADDRESS", "start": 41, "end": 56, "…": "…" }] },
+      { "number": 3, "entities": [{ "entity": "CREDIT_CARD", "start": 17, "end": 36, "…": "…" }, { "entity": "IBAN_CODE", "start": 42, "end": 71, "…": "…" }] }
+    ]
+  }
+}
+```
+
+The first argument is a euro-pii options object, passed through as it is: `countries`, `kinds`, `entities` and `except` choose what to look for, exactly as [euro-pii documents them](https://www.npmjs.com/package/@axium-lab/euro-pii#choosing-what-to-look-for). The policy is the same too, with one difference: a file is never rewritten, so there is no `mask`. Each detection is either kept (reported, the file passes) or blocks (the file is refused). The most specific key wins: `entities`, then `kinds`, then `default`, which is `'keep'` when left out. Without a policy, everything is reported and nothing blocks. A `'mask'` that arrives from plain JSON behaves as `'keep'`.
+
+The second argument is the scope:
+
+| Option  | Default   | Meaning                                                                 |
+| ------- | --------- | ----------------------------------------------------------------------- |
+| `pages` | all pages | `number[]` of 1-based page numbers to scan. The others are not even read. |
+
+The result is what euro-pii's `anonymize()` returns for `extract_text({ pages }).raw`, without the anonymized text, plus `metadata`:
+
+| Field                       | Meaning                                                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `blocked`                   | `true` if any detection's action is `'block'`.                                                                           |
+| `blocked_by`                | The detections that blocked. Present only when `blocked` is `true`, so TypeScript narrows on it.                         |
+| `entities`                  | Every detection, in document order. `start` and `end` are offsets into `raw` of the same pages, `end` exclusive.         |
+| `metadata.kind`             | The detected format, `'pdf'`.                                                                                            |
+| `metadata.pages[].number`   | 1-based page number. Only the scanned pages, in ascending order.                                                         |
+| `metadata.pages[].entities` | The same detections, with offsets into that page's `text` as `extract_text({ pages: true })` returns it.                 |
+
+Each detection is a euro-pii `Detection`, untouched: `entity`, `kind`, `dataClass`, `identifiability`, `country`, `start`, `end`, `score`, `value`, `pattern`, `confirmedBy`. See [its README](https://www.npmjs.com/package/@axium-lab/euro-pii#detecting-scan) for what each field means.
+
+Pages are read and scanned one at a time, so a document with hundreds of pages costs one page of memory, not the whole text. Each page is scanned as a single line, exactly as `raw` is built, so the result is the same whether you look at `entities` or at `metadata.pages`. A value split across two pages is not detected.
+
+```ts
+const scan = await extractor.scan_pii({ countries: ['ES', 'GLOBAL'] });
+
+if (scan.entities.length === 0) {
+  // nothing personal in the file
+}
+
+if (scan.blocked) {
+  const pages = scan.metadata.pages.filter((p) => p.entities.length > 0).map((p) => p.number);
+  throw new Error(`Refused: ${scan.blocked_by.map((d) => d.entity).join(', ')} on pages ${pages.join(', ')}`);
+}
+```
+
 ### Errors
 
 Every error thrown by the library is a `FileExtractorError` with a `category`:
 
 | Category             | Thrown when                                                                                                |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- |
-| `invalid_input`      | The input is empty, not a `FileInput`, invalid base64 or a non-base64 data URI, or the `extract_text` options select nothing or a page that does not exist. |
+| `invalid_input`      | The input is empty, not a `FileInput`, invalid base64 or a non-base64 data URI; the `extract_text` options select nothing or a page that does not exist; or the `scan_pii` options are rejected by euro-pii (unknown entity, empty selection, an entity both blocked and excepted). |
 | `unsupported_format` | The bytes are not a supported file type.                                                                   |
 | `invalid_file`       | The file is corrupt or malformed.                                                                          |
 | `password_required`  | The PDF needs a user password to open.                                                                     |
 | `extraction_failed`  | The underlying library failed for any other reason.                                                        |
 
-`unsupported_format` is thrown by the constructor, `invalid_input` by the constructor and by `extract_text`, the rest by the methods. The original error is kept in `cause`.
+`unsupported_format` is thrown by the constructor, `invalid_input` by the constructor and by the methods, the rest by the methods. The original error is kept in `cause`; for `scan_pii` option errors that is the `EuroPiiError`.
 
 ```ts
 import { FileExtractor, isFileExtractorError } from '@axium-lab/file-extractor';
@@ -304,6 +387,7 @@ try {
 | `kind`                      | `FileKind`: `'pdf'`                            |
 | `extract_text(options?)`    | `Promise<ExtractedText>`                       |
 | `get_metadata()`            | `Promise<FileMetadata>`                        |
+| `scan_pii(options?, scope?)` | `options: ScanPiiOptions`, `scope: ScanPiiScope`. `Promise<PiiScan>` |
 
 ### Other exports
 
@@ -312,14 +396,36 @@ try {
 | `FileExtractorError`, `isFileExtractorError` | The error class and its type guard                                            |
 | `FILE_KINDS`, `SUPPORTED_MIME_TYPES`         | `['pdf']` and `['application/pdf']`, to skip other files before decoding them |
 
-Types: `FileInput`, `ExtractTextOptions`, `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
+Types: `FileInput`, `ExtractTextOptions`, `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `ScanPiiOptions`, `ScanPiiScope`, `FilePolicy`, `FileAction`, `PiiScan`, `PiiPage`, `FileExtractorErrorCategory`.
+
+```ts
+type FileAction = 'keep' | 'block';
+
+type ScanPiiOptions = Selection & {       // Selection is euro-pii's: countries, kinds, entities, except
+  policy?: {
+    default?: FileAction;
+    kinds?: Partial<Record<Kind, FileAction>>;
+    entities?: Partial<Record<EntityName, FileAction>>;
+  };
+};
+
+type ScanPiiScope = { pages?: number[] };
+
+type PiiScan = (
+  | { blocked: false; entities: Detection[] }
+  | { blocked: true; blocked_by: Detection[]; entities: Detection[] }
+) & {
+  metadata: { kind: FileKind; pages: { number: number; entities: Detection[] }[] };
+};
+```
 
 ## Limitations
 
 What file-extractor does **not** do matters as much as what it does:
 
 - **PDF only, for now.** Any other format throws `unsupported_format`. New formats plug into the `kind` detection and the `switch` in `FileExtractor`.
-- **No OCR.** A scanned PDF has no text layer, so `extract_text()` returns empty text.
+- **No OCR.** A scanned PDF has no text layer, so `extract_text()` returns empty text and `scan_pii()` finds nothing.
+- **PII detection is euro-pii's.** Regular expressions, checksums and context words, no machine learning: names and free-form addresses are not detected. Whatever the selection leaves out stays unreported. See [its limitations](https://www.npmjs.com/package/@axium-lab/euro-pii#limitations).
 - **No password support.** A PDF with a user password throws `password_required`. Owner-password-only files open fine.
 - **XFA forms.** pdf.js supports pure XFA poorly; text may be incomplete when `isXfa` is `true`.
 - **Metadata is reported, not validated.** Signatures are not verified and permissions are not enforced.
@@ -333,6 +439,8 @@ npm run build      # dist/esm + dist/cjs via tsup
 ```
 
 `tests/manual.ts` is a playground, not a test suite: it loads a fixture from `tests/fixtures/`, calls the API and prints the result. `tests/fixtures/full.pdf` exercises every metadata field. `tests/errors.ts` does the same for each error category and runs at the end of `manual.ts`.
+
+`tests/inputs.ts` and `tests/pii.ts` are assertion scripts: run them with `bun tests/inputs.ts` or `npx tsx tests/pii.ts`. `tests/fixtures/pii.pdf` has a NIF and an email on page 1, nothing on page 2, and a card and an IBAN on page 3.
 
 ## License
 

@@ -5,6 +5,7 @@ import {
   type FileExtractorErrorCategory,
 } from '../errors/errors';
 import type {
+  ExtractedPage,
   ExtractedText,
   ExtractTextOptions,
   OutlineItem,
@@ -50,6 +51,24 @@ export async function extractPdfText(
     }
     if (pages) result.pages = extracted;
     return result;
+  });
+}
+
+/**
+ * Reads the requested pages (all when `pages` is undefined) one at a time, in
+ * ascending order, and hands each to `visit`. Only one page's text is alive at
+ * once, so scanning a long document costs a page of memory, not the document.
+ */
+export function readPdfPages(
+  bytes: Uint8Array,
+  pages: number[] | undefined,
+  visit: (page: ExtractedPage) => void,
+): Promise<void> {
+  return withPdf(bytes, async (pdf) => {
+    const numbers = pages ? validatePages(pages, pdf.numPages) : allPages(pdf.numPages);
+    for (const number of numbers) {
+      visit({ number, text: await getPageText(pdf, number) });
+    }
   });
 }
 

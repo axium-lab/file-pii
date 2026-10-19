@@ -1,0 +1,82 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+2 0 obj
+<< /Length 109 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+14 TL
+(Cliente: Ana Garcia) Tj
+T*
+(DNI 12345678Z) Tj
+T*
+(Email: ana@example.com) Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 2 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 103 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+14 TL
+(Sin datos personales en esta pagina.) Tj
+T*
+(Resumen del contrato.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+6 0 obj
+<< /Length 116 >>
+stream
+BT
+/F1 12 Tf
+72 720 Td
+14 TL
+(Pago con tarjeta 4111 1111 1111 1111) Tj
+T*
+(IBAN ES91 2100 0418 4502 0005 1332) Tj
+ET
+endstream
+endobj
+7 0 obj
+<< /Type /Page /Parent 8 0 R /MediaBox [0 0 612 792] /Contents 6 0 R /Resources << /Font << /F1 1 0 R >> >> >>
+endobj
+8 0 obj
+<< /Type /Pages /Kids [3 0 R 5 0 R 7 0 R] /Count 3 >>
+endobj
+9 0 obj
+<< /Type /Catalog /Pages 8 0 R >>
+endobj
+10 0 obj
+<< /Title (PII fixture) >>
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000015 00000 n 
+0000000112 00000 n 
+0000000272 00000 n 
+0000000398 00000 n 
+0000000552 00000 n 
+0000000678 00000 n 
+0000000845 00000 n 
+0000000971 00000 n 
+0000001040 00000 n 
+0000001089 00000 n 
+trailer
+<< /Size 11 /Root 9 0 R /Info 10 0 R >>
+startxref
+1132
+%%EOF

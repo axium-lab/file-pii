@@ -1,11 +1,15 @@
 import { FileExtractorError } from './errors/errors';
-import { extractPdfText, getPdfMetadata, isPdf } from './formats/pdf';
+import { extractPdfText, getPdfMetadata, isPdf, readPdfPages } from './formats/pdf';
+import { scanPii } from './pii/scan';
 import type {
   ExtractedText,
   ExtractTextOptions,
   FileInput,
   FileKind,
   FileMetadata,
+  PiiScan,
+  ScanPiiOptions,
+  ScanPiiScope,
 } from './types';
 
 // Standard and url-safe alphabets, with optional padding.
@@ -32,6 +36,19 @@ export class FileExtractor {
     switch (this.kind) {
       case 'pdf':
         return getPdfMetadata(this.#bytes);
+    }
+  }
+
+  /**
+   * Detects personal data with euro-pii (a peer dependency) and applies a
+   * keep/block policy. The file is never rewritten.
+   */
+  scan_pii(options: ScanPiiOptions = {}, scope: ScanPiiScope = {}): Promise<PiiScan> {
+    switch (this.kind) {
+      case 'pdf':
+        return scanPii(this.kind, options, (visit) =>
+          readPdfPages(this.#bytes, scope.pages, visit),
+        );
     }
   }
 }

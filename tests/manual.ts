@@ -35,5 +35,24 @@ console.log('--------------------');
 // const metadata = await extractor.get_metadata();
 // console.log('metadata:', metadata);
 
+// PII: euro-pii over a fixture with a NIF, an email, a card and an IBAN.
+const piiExtractor = new FileExtractor(await fixtureAsBase64('pii.pdf'));
+console.log(
+  'pii scan:',
+  JSON.stringify(
+    await piiExtractor.scan_pii(
+      {
+        countries: ['ES', 'GLOBAL'],
+        except: ['DATE_TIME'],
+        policy: { kinds: { PAYMENT_CARD: 'block' } },
+      },
+      { pages: [1, 3] },
+    ),
+    null,
+    2,
+  ),
+);
+console.log('--------------------');
+
 // Error cases live in errors.ts. Comment this out to skip them.
 await import('./errors');
