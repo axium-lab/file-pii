@@ -33,11 +33,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@ssh.dev.azure.com:v3/axium-lab/pocs/file-pii"
+    "url": "git@github.com:axium-lab/file-pii.git"
   },
   "publishConfig": {
-    "@axium-lab:registry": "https://npm.pkg.github.com",
-    "access": "restricted"
+    "access": "public"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
