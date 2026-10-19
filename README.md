@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://www.npmjs.com/package/@axium-lab/file-pii">
+    <img src="docs/og-image.png" alt="file-pii — read your files and catch personal data before it leaks. Text, metadata and a PII scan from one PDF, in three calls. Pure JavaScript, no native dependencies, with a keep / block policy you define." width="820" />
+  </a>
+</p>
+
 # @axium-lab/file-pii
 
 [![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](package.json)
@@ -445,6 +451,13 @@ npm run build      # dist/esm + dist/cjs via tsup, then scripts/check-dist.mjs
 ```
 
 `tests/manual.ts` is a playground, not a test suite: it loads a fixture from `tests/fixtures/`, calls the API and prints the result. `tests/fixtures/full.pdf` exercises every metadata field. `tests/errors.ts` does the same for each error category and runs at the end of `manual.ts`.
+
+`docs/og-image.png` is the README header, rendered from `docs/og-image.html` at 1200×630 with headless Chrome:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --hide-scrollbars \
+  --window-size=1200,630 --virtual-time-budget=5000 --screenshot=docs/og-image.png "file://$PWD/docs/og-image.html"
+```
 
 `tests/inputs.ts` and `tests/pii.ts` are assertion scripts: `npm test` runs both, or run one with `bun tests/inputs.ts` or `npx tsx tests/pii.ts`. `tests/fixtures/pii.pdf` has a NIF and an email on page 1, nothing on page 2, and a card and an IBAN on page 3.
 

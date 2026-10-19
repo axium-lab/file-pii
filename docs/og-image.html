@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>file-pii og image</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg0: #0b1020;
+    --bg1: #111a33;
+    --fg: #f1f4fb;
+    --muted: #a9b3c9;
+    --accent: #8b92ff;
+    --green: #7ee0a3;
+    --line: rgba(255, 255, 255, 0.12);
+    --chip: rgba(255, 255, 255, 0.05);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    color: var(--fg);
+    background:
+      radial-gradient(900px 500px at 85% 10%, rgba(139, 146, 255, 0.16), transparent 60%),
+      radial-gradient(700px 400px at 10% 100%, rgba(126, 224, 163, 0.07), transparent 60%),
+      linear-gradient(135deg, var(--bg0) 0%, var(--bg1) 100%);
+    position: relative;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(800px 400px at 85% 20%, #000 20%, transparent 100%);
+    -webkit-mask-image: radial-gradient(800px 400px at 85% 20%, #000 20%, transparent 100%);
+  }
+  .wrap { position: relative; padding: 50px 70px 0; height: 100%; }
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .brand { font-weight: 800; font-size: 30px; letter-spacing: -0.01em; }
+  .pill {
+    font-family: "JetBrains Mono", Menlo, monospace;
+    font-size: 17px; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 9px 18px; background: var(--chip);
+  }
+  h1 {
+    margin-top: 26px;
+    font-size: 64px; line-height: 1.08; font-weight: 800; letter-spacing: -0.025em;
+  }
+  h1 .hl { color: var(--accent); }
+  .sub {
+    margin-top: 16px; max-width: 900px;
+    font-size: 25px; line-height: 1.35; color: var(--muted);
+  }
+  .row { display: flex; gap: 40px; margin-top: 26px; align-items: flex-start; }
+  .code {
+    flex: 0 0 720px;
+    font-family: "JetBrains Mono", Menlo, monospace;
+    font-size: 20px; line-height: 1.65;
+    border: 1px solid var(--line); border-radius: 14px;
+    background: rgba(0, 0, 0, 0.22);
+    padding: 12px 26px;
+  }
+  .code .id { color: var(--green); }
+  .code .arrow { color: var(--accent); }
+  .code .str { color: #f0c27b; }
+  .tags { display: flex; flex-wrap: wrap; gap: 10px; flex: 1; }
+  .tag {
+    font-weight: 600; font-size: 18px;
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 10px 20px; background: var(--chip);
+  }
+  .tag.on { border-color: rgba(139,146,255,0.5); background: rgba(139,146,255,0.12); }
+  .bottom {
+    position: absolute; left: 70px; right: 70px; bottom: 36px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .feats { display: flex; gap: 12px; }
+  .feat {
+    font-size: 18px; border: 1px solid var(--line); border-radius: 999px;
+    padding: 10px 20px; background: var(--chip);
+  }
+  .by { font-size: 18px; color: var(--muted); }
+  .by b { color: var(--fg); }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand">file-pii</div>
+      <div class="pill">open source · MIT</div>
+    </div>
+
+    <h1>Read your files and catch<br /><span class="hl">personal data before it leaks</span></h1>
+
+    <p class="sub">Text, metadata and a PII scan from one PDF, in three calls. Pure JavaScript, no native dependencies, with a keep / block policy you define.</p>
+
+    <div class="row">
+      <div class="code">
+        <div><span class="id">const file</span> <span class="arrow">=</span> new FileExtractor(buffer);</div>
+        <div><span class="arrow">→</span> await file.extract_text()</div>
+        <div><span class="arrow">→</span> await file.get_metadata()</div>
+        <div><span class="arrow">→</span> await file.scan_pii({ countries: [<span class="str">'ES'</span>] })</div>
+      </div>
+      <div class="tags">
+        <div class="tag">PDF</div>
+        <div class="tag">Node ≥ 22</div>
+        <div class="tag">ESM · CJS</div>
+        <div class="tag">TypeScript</div>
+        <div class="tag on">euro-pii</div>
+      </div>
+    </div>
+
+    <div class="bottom">
+      <div class="feats">
+        <div class="feat">⚡ Zero native deps</div>
+        <div class="feat">Magic-byte detection</div>
+        <div class="feat">Per-page results</div>
+      </div>
+      <div class="by">by <b>Axium</b> — the Zero Trust AI gateway</div>
+    </div>
+  </div>
+</body>
+</html>
