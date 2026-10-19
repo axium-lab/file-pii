@@ -1,7 +1,7 @@
 # @axium-lab/file-pii
 
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](package.json)
-[![License: UNLICENSED](https://img.shields.io/badge/License-UNLICENSED-lightgrey.svg)](package.json)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D22-brightgreen.svg)](package.json)
 [![Formats](https://img.shields.io/badge/formats-PDF-orange.svg)](#limitations)
 [![PII](https://img.shields.io/badge/PII-euro--pii-purple.svg)](#detecting-personal-data-scan_pii)
@@ -463,4 +463,4 @@ tags `vX.Y.Z`, pushes, and publishes last: a tag can be deleted, a published ver
 
 ## License
 
-UNLICENSED. Private package of Axium Lab.
+[MIT](LICENSE) © 2026 Axium Lab. Some PII patterns, checksums and context words are ported from [Microsoft Presidio](https://github.com/microsoft/presidio), also MIT; its notice is included in [LICENSE](LICENSE).

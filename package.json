@@ -2,7 +2,7 @@
   "name": "@axium-lab/file-pii",
   "version": "0.2.0",
   "description": "Detect personal data (PII) in files with euro-pii and apply a keep/block policy. Also extracts text and metadata. PDF today, no native dependencies.",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",

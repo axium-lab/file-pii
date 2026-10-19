@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Licensed under MIT (`LICENSE` added, `license` field in `package.json`
+  updated from `UNLICENSED`).
+
 ### Added
 
 - `scripts/release.sh`: tags `vX.Y.Z`, pushes and publishes, with preflight
