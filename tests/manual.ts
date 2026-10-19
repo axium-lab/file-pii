@@ -16,10 +16,24 @@ const extractor = new FileExtractor(documentBase64);
 console.log('kind:', extractor.kind);
 
 const result = await extractor.extract_text();
-console.log('result:', result);
+console.log('1.result:', result);
+console.log('--------------------');
+console.log('all pages:', await extractor.extract_text({ pages: true }));
 
-const metadata = await extractor.get_metadata();
-console.log('metadata:', metadata);
+console.log('--------------------');
+console.log('--------------------');
+console.log('pages 2 and 3:', await extractor.extract_text({ pages: [1, 3] }));
+
+console.log('--------------------');
+console.log('--------------------');
+console.log(
+  'page 1 only, no raw:',
+  await extractor.extract_text({ raw: false, pages: [1] }),
+);
+console.log('--------------------');
+console.log('--------------------');
+// const metadata = await extractor.get_metadata();
+// console.log('metadata:', metadata);
 
 // Error cases live in errors.ts. Comment this out to skip them.
 await import('./errors');

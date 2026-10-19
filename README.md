@@ -19,15 +19,17 @@ const extractor = new FileExtractor(base64); // detects the format from the byte
 
 extractor.kind; // 'pdf'
 
-const { raw, pages } = await extractor.extract_text();
-// raw:   'Chapter 1: Introduction This page has a link… Appendix Smaller page size.'
-// pages: [{ number: 1, text: 'Chapter 1: Introduction\n…' }, …]
+const { raw } = await extractor.extract_text();
+// raw: 'Chapter 1: Introduction This page has a link… Appendix Smaller page size.'
+
+await extractor.extract_text({ pages: [2, 4] });
+// { raw: '…', pages: [{ number: 2, text: '…' }, { number: 4, text: '…' }] }, only those pages
 
 const metadata = await extractor.get_metadata();
 // { title: 'Full Metadata Sample', pageCount: 3, encrypted: true, permissions: ['print', 'copy', 'fill_forms'], … }
 ```
 
-- **Text per page, and as one line.** `pages` keeps page numbers and line breaks for chunking and citing; `raw` is the whole document flattened, ready for an LLM prompt or a search index.
+- **Text as one line, and per page.** `raw` is the default: the document flattened, ready for an LLM prompt or a search index. `pages` is opt-in and keeps page numbers and line breaks for chunking and citing; ask for all of them or only some.
 - **Everything the document declares about itself.** Info dictionary, XMP, flags, permissions, bookmarks, attachments, form fields, layers. One open, no rendering.
 - **Detection by magic bytes, not by extension.** The caller cannot lie about the file type.
 - **One error type.** Every failure is a `FileExtractorError` with a `category` you can switch on.
@@ -63,7 +65,7 @@ Requires Node.js 22 or later. There is nothing to configure.
 
 | Method           | Does                                                                 |
 | ---------------- | -------------------------------------------------------------------- |
-| `extract_text()` | Returns the text of every page, in reading order.                    |
+| `extract_text()` | Returns the document text; optionally per page or only some pages.   |
 | `get_metadata()` | Returns everything the document declares about itself. No rendering. |
 
 Both are asynchronous and can be called in any order, as many times as you want.
@@ -81,28 +83,48 @@ await extractor.extract_text();
 ```json
 {
   "kind": "pdf",
-  "raw": "Chapter 1: Introduction This page has a link, a text field and a checkbox. Chapter 2: Rotated page Section 2.1 lives here. Appendix Smaller page size.",
+  "raw": "Chapter 1: Introduction This page has a link, a text field and a checkbox. Chapter 2: Rotated page Section 2.1 lives here. Appendix Smaller page size."
+}
+```
+
+By default you get the whole document as one line. The options choose what to extract; only the selected pages are read.
+
+| Option  | Default | Meaning                                                                                           |
+| ------- | ------- | ------------------------------------------------------------------------------------------------- |
+| `raw`   | `true`  | Include the document (or the selected pages) as a single line.                                    |
+| `pages` | `false` | Which pages to return: `false` for none, `true` for all, or a `number[]` of 1-based page numbers. |
+
+```ts
+await extractor.extract_text({ pages: [2, 3] });
+```
+
+```json
+{
+  "kind": "pdf",
+  "raw": "Chapter 2: Rotated page Section 2.1 lives here. Appendix Smaller page size.",
   "pages": [
-    {
-      "number": 1,
-      "text": "Chapter 1: Introduction\nThis page has a link, a text field and a checkbox."
-    },
     { "number": 2, "text": "Chapter 2: Rotated page\nSection 2.1 lives here." },
     { "number": 3, "text": "Appendix\nSmaller page size." }
   ]
 }
 ```
 
-| Field            | Meaning                                                                         |
-| ---------------- | ------------------------------------------------------------------------------- |
-| `kind`           | The detected format, `'pdf'`.                                                   |
-| `raw`            | The whole document as a single line: pages and line breaks joined with spaces.  |
-| `pages[].number` | 1-based page number.                                                            |
-| `pages[].text`   | The page text with line breaks preserved. Empty for pages without a text layer. |
+| Field            | Meaning                                                                                                                        |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `kind`           | The detected format, `'pdf'`.                                                                                                  |
+| `raw`            | The document, or the selected pages, as a single line: pages and line breaks joined with spaces. Absent when `raw` is `false`. |
+| `pages[].number` | 1-based page number. Pages come in ascending order. Present only when `pages` is requested.                                    |
+| `pages[].text`   | The page text with line breaks preserved. Empty for pages without a text layer.                                                |
+
+A page number outside the document or a duplicate throws `invalid_input`, e.g. `Page 99 is out of range (document has 3 pages)`. So does `{ raw: false, pages: false }`, since there is nothing to extract.
 
 To get a single string that keeps line breaks:
 
 ```ts
+const { pages = [] } = await extractor.extract_text({
+  raw: false,
+  pages: true,
+});
 const text = pages.map((page) => page.text).join('\n\n');
 ```
 
@@ -242,15 +264,15 @@ Optional fields are `undefined` when the file does not carry them. Field by fiel
 
 Every error thrown by the library is a `FileExtractorError` with a `category`:
 
-| Category             | Thrown when                                         |
-| -------------------- | --------------------------------------------------- |
-| `invalid_input`      | The input is empty or not valid base64.             |
-| `unsupported_format` | The bytes are not a supported file type.            |
-| `invalid_file`       | The file is corrupt or malformed.                   |
-| `password_required`  | The PDF needs a user password to open.              |
-| `extraction_failed`  | The underlying library failed for any other reason. |
+| Category             | Thrown when                                                                                                |
+| -------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `invalid_input`      | The input is not valid base64, or the `extract_text` options select nothing or a page that does not exist. |
+| `unsupported_format` | The bytes are not a supported file type.                                                                   |
+| `invalid_file`       | The file is corrupt or malformed.                                                                          |
+| `password_required`  | The PDF needs a user password to open.                                                                     |
+| `extraction_failed`  | The underlying library failed for any other reason.                                                        |
 
-The first two are thrown by the constructor, the rest by the methods. The original error is kept in `cause`.
+`unsupported_format` is thrown by the constructor, `invalid_input` by the constructor and by `extract_text`, the rest by the methods. The original error is kept in `cause`.
 
 ```ts
 import { FileExtractor, isFileExtractorError } from '@axium-lab/file-extractor';
@@ -272,23 +294,24 @@ try {
 | --------------------------- | ---------------------------------------------- |
 | `new FileExtractor(base64)` | Throws `invalid_input` or `unsupported_format` |
 | `kind`                      | `FileKind`: `'pdf'`                            |
-| `extract_text()`            | `Promise<ExtractedText>`                       |
+| `extract_text(options?)`    | `Promise<ExtractedText>`                       |
 | `get_metadata()`            | `Promise<FileMetadata>`                        |
 
 ### Other exports
 
-| Export                                       | What it is                         |
-| -------------------------------------------- | ---------------------------------- |
-| `FileExtractorError`, `isFileExtractorError` | The error class and its type guard |
+| Export                                       | What it is                                                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------------- |
+| `FileExtractorError`, `isFileExtractorError` | The error class and its type guard                                            |
+| `FILE_KINDS`, `SUPPORTED_MIME_TYPES`         | `['pdf']` and `['application/pdf']`, to skip other files before decoding them |
 
-Types: `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
+Types: `ExtractTextOptions`, `ExtractedText`, `ExtractedPage`, `FileKind`, `FileMetadata`, `PdfMetadata`, `PdfPermission`, `PdfFormField`, `OutlineItem`, `FileExtractorErrorCategory`.
 
 ## Limitations
 
 What file-extractor does **not** do matters as much as what it does:
 
 - **PDF only, for now.** Any other format throws `unsupported_format`. New formats plug into the `kind` detection and the `switch` in `FileExtractor`.
-- **No OCR.** A scanned PDF has no text layer, so `extract_text()` returns empty pages.
+- **No OCR.** A scanned PDF has no text layer, so `extract_text()` returns empty text.
 - **No password support.** A PDF with a user password throws `password_required`. Owner-password-only files open fine.
 - **XFA forms.** pdf.js supports pure XFA poorly; text may be incomplete when `isXfa` is `true`.
 - **Metadata is reported, not validated.** Signatures are not verified and permissions are not enforced.

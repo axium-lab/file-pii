@@ -33,6 +33,34 @@ try {
   logError(error);
 }
 
+// invalid_input: a page beyond the document's page count.
+try {
+  await new FileExtractor(await fixtureAsBase64('full.pdf')).extract_text({
+    pages: [99],
+  });
+} catch (error) {
+  logError(error);
+}
+
+// invalid_input: the same page requested twice.
+try {
+  await new FileExtractor(await fixtureAsBase64('full.pdf')).extract_text({
+    pages: [2, 2],
+  });
+} catch (error) {
+  logError(error);
+}
+
+// invalid_input: neither raw nor pages requested.
+try {
+  await new FileExtractor(await fixtureAsBase64('full.pdf')).extract_text({
+    raw: false,
+    pages: false,
+  });
+} catch (error) {
+  logError(error);
+}
+
 // invalid_file: looks like a PDF by its header, but the rest is garbage.
 try {
   await new FileExtractor(

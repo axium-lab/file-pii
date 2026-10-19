@@ -1,6 +1,11 @@
 import { FileExtractorError } from './errors/errors';
 import { extractPdfText, getPdfMetadata, isPdf } from './formats/pdf';
-import type { ExtractedText, FileKind, FileMetadata } from './types';
+import type {
+  ExtractedText,
+  ExtractTextOptions,
+  FileKind,
+  FileMetadata,
+} from './types';
 
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -13,10 +18,10 @@ export class FileExtractor {
     this.kind = detectKind(this.#bytes);
   }
 
-  extract_text(): Promise<ExtractedText> {
+  extract_text(options: ExtractTextOptions = {}): Promise<ExtractedText> {
     switch (this.kind) {
       case 'pdf':
-        return extractPdfText(this.#bytes);
+        return extractPdfText(this.#bytes, options);
     }
   }
 

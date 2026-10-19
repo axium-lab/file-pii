@@ -1,15 +1,31 @@
-export type FileKind = 'pdf';
+export const FILE_KINDS = ['pdf'] as const;
+
+export type FileKind = (typeof FILE_KINDS)[number];
+
+/** MIME types of the supported formats, so callers can skip other files without decoding them. */
+export const SUPPORTED_MIME_TYPES = ['application/pdf'] as const;
 
 export type ExtractedPage = {
   number: number;
   text: string;
 };
 
+export type ExtractTextOptions = {
+  /** Include the whole document (or the selected pages) as a single line. Default: true. */
+  raw?: boolean;
+  /** Which pages to return: false = none (default), true = all, number[] = only those pages, 1-based. */
+  pages?: boolean | number[];
+};
+
 export type ExtractedText = {
   kind: FileKind;
-  /** Whole document as a single line, pages and line breaks joined with spaces. */
-  raw: string;
-  pages: ExtractedPage[];
+  /**
+   * The document (or the selected pages) as a single line, pages and line breaks joined with spaces.
+   * Present unless `raw: false` was passed.
+   */
+  raw?: string;
+  /** Pages in ascending order, with line breaks preserved. Present only when `pages` was requested. */
+  pages?: ExtractedPage[];
 };
 
 export type OutlineItem = {

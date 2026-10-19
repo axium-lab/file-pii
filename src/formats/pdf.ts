@@ -1,11 +1,12 @@
 // https://www.npmjs.com/package/unpdf
-import { extractText, getDocumentProxy, getResolvedPDFJS } from 'unpdf';
+import { getDocumentProxy, getResolvedPDFJS } from 'unpdf';
 import {
   FileExtractorError,
   type FileExtractorErrorCategory,
 } from '../errors/errors';
 import type {
   ExtractedText,
+  ExtractTextOptions,
   OutlineItem,
   PdfFormField,
   PdfMetadata,
@@ -19,104 +20,152 @@ export function isPdf(bytes: Uint8Array): boolean {
     .includes('%PDF-');
 }
 
-// Extract text from a PDF file.
-export function extractPdfText(bytes: Uint8Array): Promise<ExtractedText> {
-  return withPdfErrors(async () => {
-    const { text } = await extractText(bytes.slice(), { mergePages: false });
-    return {
-      kind: 'pdf',
-      raw: text.join(' ').replace(/\n/g, ' '),
-      pages: text.map((text, i) => ({ number: i + 1, text })),
-    };
+// Extract text from a PDF file, reading only the pages the caller asked for.
+export async function extractPdfText(
+  bytes: Uint8Array,
+  { raw = true, pages = false }: ExtractTextOptions = {},
+): Promise<ExtractedText> {
+  if (!raw && !pages) {
+    throw invalidInput('Nothing to extract: enable raw, pages or both');
+  }
+
+  return withPdf(bytes, async (pdf) => {
+    const numbers = Array.isArray(pages)
+      ? validatePages(pages, pdf.numPages)
+      : allPages(pdf.numPages);
+
+    const extracted = await Promise.all(
+      numbers.map(async (number) => ({
+        number,
+        text: await getPageText(pdf, number),
+      })),
+    );
+
+    const result: ExtractedText = { kind: 'pdf' };
+    if (raw) {
+      result.raw = extracted
+        .map((page) => page.text)
+        .join(' ')
+        .replace(/\n/g, ' ');
+    }
+    if (pages) result.pages = extracted;
+    return result;
   });
+}
+
+function allPages(pageCount: number): number[] {
+  return Array.from({ length: pageCount }, (_, i) => i + 1);
+}
+
+/** Every requested page must exist exactly once; returns them in ascending order. */
+function validatePages(pages: number[], pageCount: number): number[] {
+  for (const page of pages) {
+    if (!Number.isInteger(page) || page < 1 || page > pageCount) {
+      throw invalidInput(
+        `Page ${page} is out of range (document has ${pageCount} pages)`,
+      );
+    }
+  }
+  if (new Set(pages).size !== pages.length) {
+    throw invalidInput('The same page is requested more than once');
+  }
+  return [...pages].sort((a, b) => a - b);
+}
+
+function invalidInput(message: string): FileExtractorError {
+  return new FileExtractorError({ category: 'invalid_input', message });
+}
+
+/** Same assembly as unpdf's extractText, so the output matches it byte for byte. */
+async function getPageText(pdf: PdfDocument, number: number): Promise<string> {
+  const page = await pdf.getPage(number);
+  const { items } = await page.getTextContent();
+  return items
+    .filter((item) => 'str' in item)
+    .map((item) => item.str + (item.hasEOL ? '\n' : ''))
+    .join('');
 }
 
 // Extract everything pdfjs knows about the document, opening it only once.
 export function getPdfMetadata(bytes: Uint8Array): Promise<PdfMetadata> {
-  return withPdfErrors(async () => {
-    const pdf = await getDocumentProxy(bytes.slice(), { verbosity: 0 });
+  return withPdf(bytes, async (pdf) => {
+    const [
+      { PDFDateString },
+      { info: rawInfo, metadata },
+      permissions,
+      jsActions,
+      outline,
+      attachments,
+      pageMode,
+      pageLayout,
+      pageLabels,
+      markInfo,
+      destinations,
+      fieldObjects,
+      viewerPreferences,
+      openAction,
+      optionalContent,
+    ] = await Promise.all([
+      getResolvedPDFJS(),
+      pdf.getMetadata(),
+      pdf.getPermissions(),
+      pdf.getJSActions(),
+      pdf.getOutline(),
+      pdf.getAttachments(),
+      pdf.getPageMode(),
+      pdf.getPageLayout(),
+      pdf.getPageLabels(),
+      pdf.getMarkInfo(),
+      pdf.getDestinations(),
+      pdf.getFieldObjects(),
+      pdf.getViewerPreferences(),
+      pdf.getOpenAction(),
+      pdf.getOptionalContentConfig(),
+    ]);
 
-    try {
-      const [
-        { PDFDateString },
-        { info: rawInfo, metadata },
-        permissions,
-        jsActions,
-        outline,
-        attachments,
-        pageMode,
-        pageLayout,
-        pageLabels,
-        markInfo,
-        destinations,
-        fieldObjects,
-        viewerPreferences,
-        openAction,
-        optionalContent,
-      ] = await Promise.all([
-        getResolvedPDFJS(),
-        pdf.getMetadata(),
-        pdf.getPermissions(),
-        pdf.getJSActions(),
-        pdf.getOutline(),
-        pdf.getAttachments(),
-        pdf.getPageMode(),
-        pdf.getPageLayout(),
-        pdf.getPageLabels(),
-        pdf.getMarkInfo(),
-        pdf.getDestinations(),
-        pdf.getFieldObjects(),
-        pdf.getViewerPreferences(),
-        pdf.getOpenAction(),
-        pdf.getOptionalContentConfig(),
-      ]);
+    // pdfjs types the Info dictionary as a bare Object.
+    const info = rawInfo as Record<string, unknown>;
 
-      // pdfjs types the Info dictionary as a bare Object.
-      const info = rawInfo as Record<string, unknown>;
-
-      return {
-        kind: 'pdf',
-        fileSize: bytes.byteLength,
-        pageCount: pdf.numPages,
-        version: asString(info.PDFFormatVersion),
-        fingerprint: pdf.fingerprints[0] ?? undefined,
-        modifiedFingerprint: pdf.fingerprints[1] ?? undefined,
-        title: asString(info.Title),
-        author: asString(info.Author),
-        subject: asString(info.Subject),
-        keywords: asString(info.Keywords),
-        creator: asString(info.Creator),
-        producer: asString(info.Producer),
-        language: asString(info.Language),
-        trapped: asName(info.Trapped),
-        createdAt: asDate(info.CreationDate, PDFDateString),
-        modifiedAt: asDate(info.ModDate, PDFDateString),
-        custom: toCustom(info.Custom),
-        encrypted: info.EncryptFilterName != null,
-        linearized: info.IsLinearized === true,
-        tagged: markInfo?.Marked === true,
-        hasForms: info.IsAcroFormPresent === true || info.IsXFAPresent === true,
-        isXfa: pdf.isPureXfa,
-        hasSignatures: info.IsSignaturesPresent === true,
-        hasJavaScript: jsActions != null,
-        hasCollection: info.IsCollectionPresent === true,
-        hasOpenAction: openAction != null,
-        pageMode: asString(pageMode),
-        pageLayout: asString(pageLayout),
-        pageLabels: pageLabels ?? undefined,
-        namedDestinations: Object.keys(destinations).length,
-        layers: toLayers(optionalContent),
-        viewerPreferences:
-          (viewerPreferences as Record<string, unknown> | null) ?? undefined,
-        permissions: permissions ? toPermissions(permissions) : undefined,
-        attachments: attachments ? [...attachments.keys()] : [],
-        outline: toOutline(outline),
-        formFields: toFormFields(fieldObjects),
-        xmp: toXmp(metadata),
-      };
-    } finally {
-      await pdf.loadingTask.destroy();
-    }
+    return {
+      kind: 'pdf',
+      fileSize: bytes.byteLength,
+      pageCount: pdf.numPages,
+      version: asString(info.PDFFormatVersion),
+      fingerprint: pdf.fingerprints[0] ?? undefined,
+      modifiedFingerprint: pdf.fingerprints[1] ?? undefined,
+      title: asString(info.Title),
+      author: asString(info.Author),
+      subject: asString(info.Subject),
+      keywords: asString(info.Keywords),
+      creator: asString(info.Creator),
+      producer: asString(info.Producer),
+      language: asString(info.Language),
+      trapped: asName(info.Trapped),
+      createdAt: asDate(info.CreationDate, PDFDateString),
+      modifiedAt: asDate(info.ModDate, PDFDateString),
+      custom: toCustom(info.Custom),
+      encrypted: info.EncryptFilterName != null,
+      linearized: info.IsLinearized === true,
+      tagged: markInfo?.Marked === true,
+      hasForms: info.IsAcroFormPresent === true || info.IsXFAPresent === true,
+      isXfa: pdf.isPureXfa,
+      hasSignatures: info.IsSignaturesPresent === true,
+      hasJavaScript: jsActions != null,
+      hasCollection: info.IsCollectionPresent === true,
+      hasOpenAction: openAction != null,
+      pageMode: asString(pageMode),
+      pageLayout: asString(pageLayout),
+      pageLabels: pageLabels ?? undefined,
+      namedDestinations: Object.keys(destinations).length,
+      layers: toLayers(optionalContent),
+      viewerPreferences:
+        (viewerPreferences as Record<string, unknown> | null) ?? undefined,
+      permissions: permissions ? toPermissions(permissions) : undefined,
+      attachments: attachments ? [...attachments.keys()] : [],
+      outline: toOutline(outline),
+      formFields: toFormFields(fieldObjects),
+      xmp: toXmp(metadata),
+    };
   });
 }
 
@@ -229,10 +278,22 @@ function toXmp(
   return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
-async function withPdfErrors<T>(run: () => Promise<T>): Promise<T> {
+type PdfDocument = Awaited<ReturnType<typeof getDocumentProxy>>;
+
+/** Opens the document, runs `use`, always destroys it, and maps pdfjs errors to ours. */
+async function withPdf<T>(
+  bytes: Uint8Array,
+  use: (pdf: PdfDocument) => Promise<T>,
+): Promise<T> {
   try {
-    return await run();
+    const pdf = await getDocumentProxy(bytes.slice(), { verbosity: 0 });
+    try {
+      return await use(pdf);
+    } finally {
+      await pdf.loadingTask.destroy();
+    }
   } catch (cause) {
+    if (cause instanceof FileExtractorError) throw cause;
     const name = cause instanceof Error ? cause.name : '';
     throw new FileExtractorError({
       category: CATEGORY_BY_ERROR[name] ?? 'extraction_failed',
